@@ -27,8 +27,7 @@
                          duplications = (duplicated(dups_ID) | 
                                                  duplicated(dups_ID, fromLast = TRUE)),
                          complete_duplications = (duplicated(complete_dups_ID) |
-                                                          duplicated(complete_dups_ID, fromLast = TRUE))) %>%
-            select(-c(dups_ID, complete_dups_ID))
+                                                          duplicated(complete_dups_ID, fromLast = TRUE)))
           if(print_results == TRUE) {
                   print(c("Duplications", sum(X$duplications)))
                   print(c("Complete Duplications", sum(X$complete_duplications)))
