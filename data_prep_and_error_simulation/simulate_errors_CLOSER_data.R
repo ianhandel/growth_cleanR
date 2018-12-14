@@ -179,12 +179,12 @@
   convert_to_tf$induced_reversed_errors <- convert_to_tf$original_weight != convert_to_tf$weight
   error_data <- full_join(error_data,convert_to_tf) 
   
-#join the rrror data back to the non-error data to form the full dataset and reformat
+#join the error data back to the non-error data to form the full dataset and reformat
   dat2 <- full_join(not_error_data,error_data) %>%
           #get rid of NAS in weight variable by filling with original weight, then copy variable
-          mutate(new_weight = case_when(is.na(new_weight) ~ original_weight,
-                                    !is.na(new_weight) ~ new_weight),
-                 weight = new_weight, 
+          mutate(new_weight = case_when(is.na(weight) ~ original_weight,
+                                    !is.na(weight) ~ weight),
+                 weight = new_weight,
           #create variable that identifies induced errors
                  induced_error = original_weight != weight)
   
