@@ -10,7 +10,7 @@ analyse_cleaning_method <- function(e, r) {
   #Progress analysis function
   get_progress <- function() {
   
-  df_percentage <- test %>%
+  df_percentage <- df %>%
     mutate(percentage_complete = 0.9090909,
            percentage_complete = cumsum(percentage_complete))
   current_row <- which(df_percentage$e == e & df_percentage$r == r)
@@ -181,8 +181,10 @@ end_time <- Sys.time()
 
 write_csv(methods_results, '/Users/s1576473/dev/growth_cleanR/data/multi_simulation_results.csv')
 
-
-
+system("git status")
+system("git add .")
+system("git commit -m 'edit multi simulation file'")
+system("git push --set-upstream origin upload_results")
 
 
 
