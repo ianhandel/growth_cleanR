@@ -12,13 +12,19 @@
 
 #Run the NLR method on the data first, to obtain a cleaner subset of the data
 #on which to run the model
-  replay(evaluate(file('data_cleaning_methods/NLR.r')))
+#
+  if(exists('master_NLR') == FALSE) {
+  replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/NLR.R')))
+  }
+  
   sub_dat <- master_NLR %>%
     mutate(ind_ID = as.factor(ind_ID),
            sex = as.factor(sex))
   
+  NLME <- master_DNC
   
-  dat <- master_DNC
+#Formula for model        
+  f1 <- new_weight ~ (Asym*exp(-exp(((growth_rate*exp(1))/Asym)*(lag_time-age)+1)))  
 
 #set up starting values based on NLR model and run the NLME model  
   start_values <- c(as.numeric(fem_mod_pars[1]),as.numeric(mal_mod_pars[1]),
@@ -141,11 +147,11 @@
     select(bins,middle_age,sex,sd_pred_RE,sd_residuals,smoothed_sd_residuals,total_variation)
 
 
-  dat <- dat %>%
+  NLME <- NLME %>%
     mutate(bins = cut(age, breaks = intervals, include.lowest = TRUE)) %>%
     full_join(grid_merged, by = c("bins", "sex")) %>%
-    mutate(random_effects = predict(mixd, newdata = master_DNC, level = 1),
-           fixed_effects = predict(mixd, newdata = master_DNC, level = 0),
+    mutate(random_effects = predict(mixd, newdata = NLME, level = 1),
+           fixed_effects = predict(mixd, newdata = NLME, level = 0),
            both_effects = case_when(!is.na(random_effects) & num_data_entries > 1 ~ random_effects,
                                     !is.na(random_effects) & num_data_entries < 2 ~ fixed_effects,
                                     is.na(random_effects) ~ fixed_effects),
@@ -171,14 +177,14 @@
     return(X)
   }
   
-  dat <- get_outliers(dat, print_results = TRUE)
+  NLME <- get_outliers(NLME, print_results = TRUE)
 
 #Apply step 1 of algorithm to delete complete duplicates, keeping just the oldest
 #duplicate in the set of data entries  
    
-  dat <- get_duplications(dat)
+  NLME <- get_duplications(NLME)
   
-  dat <- dat %>%
+  NLME <- NLME %>%
     group_by(dups_ID) %>%
     mutate(observation = row_number(),
            last_obs_num = tail(observation, 1),
@@ -187,17 +193,17 @@
            first_observation = first_obs_num == observation) %>%
     ungroup()
   
-  dat <- dat %>%
+  NLME <- NLME %>%
     filter(complete_duplications == FALSE | complete_duplications == TRUE & first_observation == TRUE)
 
 #look at difference
-  dat <- get_duplications(dat)
-  dat <- get_outliers(dat) 
+  NLME <- get_duplications(NLME)
+  NLME <- get_outliers(NLME) 
 
 #Apply step 2 of algorithm to delete duplicates that are not complete duplicates
 #by keeping only the duplicate that is closest to the predicted measurement    
 
-  dat <- dat %>%
+  NLME <- NLME %>%
     mutate(abs_diff_from_pred = abs(new_weight - both_effects)) %>%
     group_by(dups_ID) %>%
     mutate(min_diff = min(abs_diff_from_pred)) %>%
@@ -205,15 +211,16 @@
     mutate(smallest_diff_from_pred = case_when(min_diff == abs_diff_from_pred ~ TRUE,
                                                min_diff != abs_diff_from_pred ~ FALSE))
   
-  dat <- dat %>%
+  NLME <- NLME %>%
     filter(duplications == FALSE | duplications == TRUE & smallest_diff_from_pred == TRUE)
   
 #check the difference in duplications and outliers
-  dat <- get_duplications(dat)
-  dat <- get_outliers(dat)
+  NLME <- get_duplications(NLME)
+  NLME <- get_outliers(NLME)
   
 #cut out remaining outliers identified by the prediction intervals to clean the data
-  master_NLME <- dat %>%
+  master_NLME <- NLME %>%
     filter(new_weight_outlier == FALSE)
+  
   
   

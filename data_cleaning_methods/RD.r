@@ -8,8 +8,11 @@
 library(evaluate)
 
 #Run the DNC method on the data first
-replay(evaluate(file('data_cleaning_methods/DNC.r')))
-dat <- master_DNC
+if(exists('master_DNC') == FALSE) {
+replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/DNC.R')))
+}
+
+master_RD <- master_DNC
   
 #Function that identifies duplications in the data and prints the number out
 #Duplications are defined as a data entry for the same individual that was entered on
@@ -34,10 +37,10 @@ dat <- master_DNC
   }
 
 #check for any duplications
-  dat <- get_duplications(dat)
+  master_RD <- get_duplications(master_RD)
   
 #find the first and last observation in each group of duplicates
-  dat <- dat %>%
+  master_RD<- master_RD %>%
     group_by(dups_ID) %>%
     mutate(observation = row_number(),
            last_obs_num = tail(observation, 1),
@@ -48,7 +51,7 @@ dat <- master_DNC
     select(-c(last_obs_num, first_obs_num))
 
 #Remove duplications by keeping the last (most recent) observation
-  master_RD <- dat %>%
+  master_RD <- master_RD %>%
     filter(duplications == FALSE | duplications == TRUE & last_observation == TRUE)
 
 #check for any remaining duplications
