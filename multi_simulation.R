@@ -183,7 +183,7 @@ write_csv(methods_results, '/Users/s1576473/dev/growth_cleanR/data/multi_simulat
 
 system("git status")
 system("git add .")
-system("git commit -m 'edit multi simulation file'")
+system("git commit -m 'upload multi simulation results dataframe'")
 system("git push --set-upstream origin upload_results")
 
 
