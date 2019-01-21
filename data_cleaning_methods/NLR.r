@@ -10,10 +10,12 @@ library(evaluate)
 
 #Run the GCO method on the data first, to obtain a cleaner subset of the data
 #on which to run the model
-  replay(evaluate(file('data_cleaning_methods/GCO.r')))
-  sub_dat <- master_GCO
-  dat <- master_DNC
+if(exists('master_GCO') == FALSE) {
+  replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/GCO.R')))
+}
 
+  sub_dat <- master_GCO
+  NLR <- master_DNC
 
 #Formula for model        
   f1 <- new_weight ~ (Asym*exp(-exp(((growth_rate*exp(1))/Asym)*(lag_time-age)+1)))
@@ -21,7 +23,7 @@ library(evaluate)
 #set up starting values for regression models based on the original data without simulated errors
 #starting values for these models were defined by externally published values
 
-  orig_dat <- read_csv('data/reformatted_CLOSER_data.csv')
+  orig_dat <- read_csv('/Users/s1576473/dev/growth_cleanR/data/reformatted_CLOSER_data.csv')
   
   females0 <- subset(orig_dat, orig_dat$sex == 'Female')
   fem_mod0 <- nls(f1,
@@ -59,7 +61,7 @@ library(evaluate)
   
 #Apply these models to the uncleaned data and calculate prediction intervals that are 4
 #times the standard deviation from the predicted measurement
-  females2 <- subset(dat, dat$sex == 'Female')
+  females2 <- subset(NLR, NLR$sex == 'Female')
   
   females2 <- females2 %>%
     mutate(NLR_pred=predict(fem_mod, newdata = females2),
@@ -67,7 +69,7 @@ library(evaluate)
            upper_int = NLR_pred + (4*(sd(NLR_pred))),
            lower_int = NLR_pred - (4*(sd(NLR_pred))))      
   
-  males2 <- subset(dat, dat$sex == 'Male')
+  males2 <- subset(NLR, NLR$sex == 'Male')
   
   males2 <- males2 %>%
     mutate(NLR_pred=predict(mal_mod, newdata = males2),
@@ -75,7 +77,7 @@ library(evaluate)
            upper_int = NLR_pred + (4*(sd(NLR_pred))),
            lower_int = NLR_pred - (4*(sd(NLR_pred)))) 
   
-  dat <- rbind(males2, females2)
+  NLR <- rbind(males2, females2)
   
   #Function to find outliers
   get_outliers <- function(X, var1 = "new_weight", upper_limit = "upper_int", 
@@ -88,14 +90,14 @@ library(evaluate)
     return(X)
   }
   
-  dat <- get_outliers(dat)
+  NLR <- get_outliers(NLR)
   
 #Apply step 1 of algorithm to delete complete duplicates, keeping just the oldest
 #duplicate in the set of data entries  
   
-  dat <- get_duplications(dat)
+  NLR <- get_duplications(NLR)
   
-  dat <- dat %>%
+  NLR <- NLR %>%
     group_by(dups_ID) %>%
     mutate(observation = row_number(),
            last_obs_num = tail(observation, 1),
@@ -104,17 +106,17 @@ library(evaluate)
            first_observation = first_obs_num == observation) %>%
     ungroup()
   
-  dat <- dat %>%
+  NLR <- NLR %>%
     filter(complete_duplications == FALSE | complete_duplications == TRUE & first_observation == TRUE)
   
   #check the difference in duplications
-  dat <- get_duplications(dat)
+  NLR <- get_duplications(NLR)
  
 #Apply step 2 of algorithm to delete duplicates that are not complete duplicates
 #by keeping only the duplicate that is closest to the predicted measurement    
 
 #Work out which of the remaining duplicates are closest to the predicted measurements   
-  dat <- dat %>%
+  NLR <- NLR %>%
     mutate(abs_diff_from_pred = abs(new_weight - NLR_pred)) %>%
     group_by(dups_ID) %>%
     mutate(min_diff = min(abs_diff_from_pred)) %>%
@@ -122,14 +124,13 @@ library(evaluate)
     mutate(smallest_diff_from_pred = case_when(min_diff == abs_diff_from_pred ~ TRUE,
                                                min_diff != abs_diff_from_pred ~ FALSE))
   
-  dat <- dat %>%
+  NLR <- NLR %>%
     filter(duplications == FALSE | duplications == TRUE & smallest_diff_from_pred == TRUE)
   
   #check the difference in duplications and outliers
-  dat <- get_duplications(dat)
-  dat <- get_outliers(dat)
+  NLR <- get_duplications(NLR)
+  NLR <- get_outliers(NLR)
   
 #cut out remaining outliers identified by the prediction intervals to clean the data
-  master_NLR <- dat %>%
+  master_NLR <- NLR %>%
     filter(new_weight_outlier == FALSE)
-

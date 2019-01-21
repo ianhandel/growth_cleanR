@@ -9,8 +9,11 @@
 library(evaluate)
 
 #Run the RD method on the data first
-replay(evaluate(file('data_cleaning_methods/RD.r')))
-dat <- master_RD
+if(exists('master_RD') == FALSE) {
+replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/RD.R')))
+}
+
+master_LZCO <- master_RD
 
 #For the LZCO method, data is divided into 365 day age periods by sex and the z scores 
 #are calculated with each age/sex group
@@ -51,12 +54,12 @@ dat <- master_RD
 #get the appropriate intervals from the new data
   intervals <- sort(unique(as.numeric(c(min(intervals), as.numeric(bin_freq$lower_bin), max(intervals)))))
 
-  dat <- dat %>%
-    mutate(bins = cut(master_RD$age, breaks = intervals, include.lowest = TRUE))
+  master_LZCO <- master_LZCO %>%
+    mutate(bins = cut(master_LZCO$age, breaks = intervals, include.lowest = TRUE))
 
 #define the z-scores for weight (by each group) that are used to identify outliers
 #The cut off for z-score is given as more than 3 or less than -3
-  dat <- as.tbl(dat) %>%
+  master_LZCO <- as.tbl(master_LZCO) %>%
     group_by(bins, sex) %>%
     mutate(pop_mean_long = mean(weight),
            pop_sd_long = sd(weight),
@@ -65,6 +68,6 @@ dat <- master_RD
     ungroup()
   
 #cut out outliers to clean the data
-  master_LZCO <- dat %>%
+  master_LZCO <- master_LZCO %>%
     filter(z_score_outlier_long == FALSE)
   

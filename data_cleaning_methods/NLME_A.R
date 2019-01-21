@@ -11,7 +11,10 @@
   
 #Run the NLME method on the data first to perform the first 2 steps of the algorithm
 #(just removing the duplications)
-  replay(evaluate(file('data_cleaning_methods/NLME.r')))
+
+  if(exists('master_NLME') == FALSE) {
+  replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/NLME.R')))
+  }
   
 #Apply step 3 of algorithm to identify the cause of possible errors in dataset
   
@@ -39,7 +42,7 @@
 #original number being too small (9 in this case)
   bad_numbers <- c(12,21,23,32,34,43,45,54,56,65,67,76,78,87,89,98)
   
-  dat <- dat %>%
+  dat3 <- NLME %>%
     mutate(div10_weights = new_weight/10,
            mul10_weights = new_weight*10,
            div100_weights = new_weight/100,
@@ -109,36 +112,36 @@
   }
   
   #get the outliers for each possible correction
-  dat <- get_outliers(dat)
-  dat <- get_outliers(dat, var1 = "div10_weights")
-  dat <- get_outliers(dat, var1 = "mul10_weights")
-  dat <- get_outliers(dat, var1 = "div100_weights")
-  dat <- get_outliers(dat, var1 = "mul100_weights")
-  dat <- get_outliers(dat, var1 = "div1000_weights")
-  dat <- get_outliers(dat, var1 = "mul1000_weights")
-  dat <- get_outliers(dat, var1 = "kg_weights")
-  dat <- get_outliers(dat, var1 = "lbs_weights")
-  dat <- get_outliers(dat, var1 = "reversed_weights")
-  dat <- get_outliers(dat, var1 = "min100_weights")
-  dat <- get_outliers(dat, var1 = "min1000_weights")
-  dat <- get_outliers(dat, var1 = "add100_weights")
-  dat <- get_outliers(dat, var1 = "add1000_weights")
+  dat3 <- get_outliers(dat3)
+  dat3 <- get_outliers(dat3, var1 = "div10_weights")
+  dat3 <- get_outliers(dat3, var1 = "mul10_weights")
+  dat3 <- get_outliers(dat3, var1 = "div100_weights")
+  dat3 <- get_outliers(dat3, var1 = "mul100_weights")
+  dat3 <- get_outliers(dat3, var1 = "div1000_weights")
+  dat3 <- get_outliers(dat3, var1 = "mul1000_weights")
+  dat3 <- get_outliers(dat3, var1 = "kg_weights")
+  dat3 <- get_outliers(dat3, var1 = "lbs_weights")
+  dat3 <- get_outliers(dat3, var1 = "reversed_weights")
+  dat3 <- get_outliers(dat3, var1 = "min100_weights")
+  dat3 <- get_outliers(dat3, var1 = "min1000_weights")
+  dat3 <- get_outliers(dat3, var1 = "add100_weights")
+  dat3 <- get_outliers(dat3, var1 = "add1000_weights")
   
   
   #Make corrections
-  dat <- replace_outliers(dat, "new_weight", "div10")
-  dat <- replace_outliers(dat, "new_weight", "div100")  
-  dat <- replace_outliers(dat, "new_weight", "div1000")  
-  dat <- replace_outliers(dat, "new_weight", "mul10")
-  dat <- replace_outliers(dat, "new_weight", "mul100")  
-  dat <- replace_outliers(dat, "new_weight", "mul1000")  
-  dat <- replace_outliers(dat, "new_weight", "min100")
-  dat <- replace_outliers(dat, "new_weight", "min1000")
-  dat <- replace_outliers(dat, "new_weight", "add100")
-  dat <- replace_outliers(dat, "new_weight", "add1000")
-  dat <- replace_outliers(dat, "new_weight", "kg")
-  dat <- replace_outliers(dat, "new_weight", "lbs")  
-  dat <- replace_outliers(dat, "new_weight", "reversed")  
+  dat3 <- replace_outliers(dat3, "new_weight", "div10")
+  dat3 <- replace_outliers(dat3, "new_weight", "div100")  
+  dat3 <- replace_outliers(dat3, "new_weight", "div1000")  
+  dat3 <- replace_outliers(dat3, "new_weight", "mul10")
+  dat3 <- replace_outliers(dat3, "new_weight", "mul100")  
+  dat3 <- replace_outliers(dat3, "new_weight", "mul1000")  
+  dat3 <- replace_outliers(dat3, "new_weight", "min100")
+  dat3 <- replace_outliers(dat3, "new_weight", "min1000")
+  dat3 <- replace_outliers(dat3, "new_weight", "add100")
+  dat3 <- replace_outliers(dat3, "new_weight", "add1000")
+  dat3 <- replace_outliers(dat3, "new_weight", "kg")
+  dat3 <- replace_outliers(dat3, "new_weight", "lbs")  
+  dat4 <- replace_outliers(dat3, "new_weight", "reversed")  
   
 #Apply step 4 of algorithm to identify consecutive values that jump in size
 
@@ -164,29 +167,27 @@
   success <- FALSE
   
   while (!success) {
-    dat <- dat
-    size_of_dataset_before <- length(dat$ind_ID)
-    dat <- get_jumpers(dat)
-    size_of_dataset_after <- length(dat$ind_ID)
-    size_of_dataset_before == size_of_dataset_after
-    success <- (size_of_dataset_before == size_of_dataset_after) == TRUE
+    dat4 <- dat4
+    size_of_dat4aset_before <- length(dat4$ind_ID)
+    dat4 <- get_jumpers(dat4)
+    size_of_dat4aset_after <- length(dat4$ind_ID)
+    size_of_dat4aset_before == size_of_dat4aset_after
+    success <- (size_of_dat4aset_before == size_of_dat4aset_after) == TRUE
   }
   
   #look at difference
-  dat <- get_duplications(dat)
-  dat <- get_outliers(dat) 
+  dat4 <- get_duplications(dat4)
+  dat4 <- get_outliers(dat4) 
   
 #Apply step 5 of algorithm to remove any remaining implausible values 
 
   #define the externally defined cut-offs for weight that are used to identify outliers
-  dat$cut_outlier <- (dat$new_weight < 0.5) | 
-    ((dat$new_weight < 10) & (dat$age >= 1825)) | 
-    (dat$new_weight > 250)
+  dat4$cut_outlier <- (dat4$new_weight < 0.5) | 
+    ((dat4$new_weight < 10) & (dat4$age >= 1825)) | 
+    (dat4$new_weight > 250)
   
   #remove values defined as outliers  
-  master_NLME_A <- dat %>%
+  master_NLME_A <- dat4 %>%
     filter(cut_outlier == FALSE)
-
-  
   
   

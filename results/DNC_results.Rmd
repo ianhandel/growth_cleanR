@@ -1,0 +1,267 @@
+---
+title: "DNC results output"
+author: "Charlotte Woolley"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning=FALSE)
+knitr::opts_chunk$set(message=FALSE)
+knitr::opts_chunk$set(fig.align='center')
+
+options(scipen=999)
+
+```
+
+
+```{r, include = FALSE}
+
+#LIBRARIES:
+  library(evaluate)
+
+#Perform the method 
+replay(evaluate(file("/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/DNC.R")))
+```
+
+*Overall Summary of Data After Error and Duplication Simulation (and before cleaning)*
+
+Total induced errors = `r sum(dat$induced_error == TRUE)`
+
+Total induced duplications = `r sum(dat$duplications == TRUE)`
+
+Total induced complete duplications = `r sum(dat$complete_duplications == TRUE)`
+
+Mean = `r mean(dat$new_weight)`
+
+Median = `r median(dat$new_weight)`
+
+SD = `r sd(dat$new_weight)`
+
+Range = `r range(dat$new_weight)`
+
+Number of observations = `r length(factor(dat$ind_ID))`
+
+Number of individuals =  `r length(unique(factor(dat$ind_ID)))`
+
+
+*Graph of data before DNC method*
+
+```{r}
+ggplot(dat, aes(x = age/365, y = new_weight, group = ind_ID, colour = sex, fill= sex)) +
+                geom_line(alpha = 0.4, lwd = 0.2) +
+                geom_point(alpha = 0.4) +
+                labs(x = "Age (years)", 
+                     y = "Weight (kg)") +
+                scale_x_continuous(breaks = c(0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100)) +
+                scale_y_log10(breaks=c(0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000),
+                              labels=c(0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000)) +
+                theme_bw() +
+               theme(axis.title.y = element_text(face="bold", size=12), 
+                      axis.text.y  = element_text(size=12),
+                      axis.title.x = element_text(face="bold", size=12),
+                      axis.text.x  = element_text(size=12),
+                      plot.title = element_text(face="bold", size=12, hjust = 0.5),
+                      legend.title = element_blank(), 
+                      legend.text = element_text(face="bold", size=12),
+                      legend.position = c(0.85, 0.1))
+```
+
+
+
+```{r}
+#DELETIONS
+  deletions <- subset(dat, !(dat$row_ID %in% master_DNC$row_ID)) 
+
+#percentage of data deleted
+  del <- 100 - ((length(master_DNC$ind_ID)/length(dat$ind_ID))*100)
+
+#ALGORITHM DELETIONS (ONLY RELEVANT TO NLR-A AND NLME-A METHODS!)
+if(exists("dat3") == TRUE) {
+#jumping deletions 
+  deletions_4 <- subset(dat3, !(dat3$row_ID %in% dat4$row_ID))
+}
+if(exists("dat3") == FALSE) {
+  deletions_4 <- as.data.frame(NA)
+}
+
+if(exists("dat4") == TRUE) {
+#impluasible values deletions 
+  deletions_5 <- subset(dat4, !(dat4$row_ID %in% master_DNC$row_ID))
+}
+
+if(exists("dat4") == FALSE) {
+  deletions_5 <- as.data.frame(NA)
+}
+  
+#MODIFICATIONS
+  master_DNC <- master_DNC %>% 
+    mutate(changed_weight = weight != new_weight)
+  
+  modifications <- subset(master_DNC,master_DNC$changed_weight == TRUE) 
+  
+
+  mod_div10 <- subset(modifications, 
+                      modifications$div10_weights_outlier == FALSE & 
+                        modifications$div10_smallest_diff == TRUE) 
+  
+  mod_div100 <- subset(modifications, 
+                       modifications$div100_weights_outlier == FALSE &
+                       modifications$div100_smallest_diff == TRUE) 
+  
+  mod_div1000 <- subset(modifications, 
+                        modifications$div1000_weights_outlier == FALSE & 
+                          modifications$div1000_smallest_diff == TRUE) 
+  
+  mod_mul10 <- subset(modifications, 
+                      modifications$mul10_weights_outlier == FALSE & 
+                        modifications$mul10_smallest_diff == TRUE) 
+  
+  mod_mul100 <- subset(modifications, 
+                       modifications$mul100_weights_outlier == FALSE & 
+                         modifications$mul100_smallest_diff == TRUE) 
+  
+  mod_mul1000 <- subset(modifications, 
+                        modifications$mul1000_weights_outlier == FALSE & 
+                          modifications$mul1000_smallest_diff == TRUE)
+  
+  mod_min100 <- subset(modifications, 
+                       modifications$min100_weights_outlier == FALSE & 
+                         modifications$min100_smallest_diff == TRUE) 
+  
+  mod_min1000 <- subset(modifications, 
+                        modifications$min1000_weights_outlier == FALSE & 
+                          modifications$min1000_smallest_diff == TRUE) 
+  
+  mod_add100 <- subset(modifications, 
+                       modifications$add100_weights_outlier == FALSE & 
+                         modifications$add100_smallest_diff == TRUE)
+  
+  mod_add1000 <- subset(modifications, 
+                        modifications$add1000_weights_outlier == FALSE & 
+                          modifications$add1000_smallest_diff == TRUE) 
+  
+  mod_kgs <- subset(modifications, 
+                    modifications$kg_weights_outlier == FALSE & 
+                      modifications$kg_smallest_diff == TRUE) 
+  
+  mod_lbs <- subset(modifications,  
+                    modifications$lbs_weights_outlier == FALSE & 
+                      modifications$lbs_smallest_diff == TRUE) 
+  
+  mod_rev <- subset(modifications, 
+                    modifications$reversed_weights_outlier == FALSE & 
+                      modifications$reversed_smallest_diff == TRUE) 
+        
+#Sensitivity and Specificity
+
+        induced_errors <- subset(dat, dat$induced_error == TRUE)
+        #Total number of errors
+        te <- length(induced_errors$row_ID)
+        #Total number of errors modified or deleted
+        tec <- sum(deletions$induced_error == TRUE) +
+          sum(modifications$induced_error == TRUE)
+        
+        #Sensitivity of method
+        se <- tec/te*100
+        
+        not_induced_errors <- subset(dat, dat$induced_error == FALSE)
+        #Total number of non-errors
+        tne <- length(not_induced_errors$row_ID)
+        #Total number of non-errors NOT corrected or deleted
+        tnec <- tne - (sum(deletions$induced_error == FALSE & deletions$complete_duplications == FALSE) +
+          sum(modifications$induced_error == FALSE & modifications$complete_duplications == FALSE))
+        
+        #Specificity of method
+        sp <- tnec/tne*100
+
+```
+
+
+*Overall Summary of DNC Method Performance (after data cleaning)*
+
+
+Mean = `r mean(master_DNC$new_weight)`
+
+Median = `r median(master_DNC$new_weight)`
+
+SD = `r sd(master_DNC$new_weight)`
+
+Range = `r range(master_DNC$new_weight)`
+
+Number of observations = `r length(factor(master_DNC$ind_ID))`
+
+Number of individuals =  `r length(unique(factor(master_DNC$ind_ID)))`
+
+Sensitivity =  `r se`
+
+Specificity =  `r sp`
+
+Total deletions =  `r length(deletions$ind_ID)`
+
+Percentage deleted = `r del`
+
+Complete duplications deletions (or step 1 of algorithm) = `r sum(deletions$complete_duplications)`
+
+Non-complete (identical) duplications deletions (or step 2 of algorithm) = `r sum(deletions$complete_duplications == FALSE & deletions$duplications == TRUE)`
+
+Total modifications (or step 3 of algorithm) = `r length(modifications$ind_ID)`
+
+Add 100 modifications = `r length(mod_add100$ind_ID)`
+
+Add 1000 modifications = `r length(mod_add1000$ind_ID)`
+
+Subtract 100 modifications = `r length(mod_min100$ind_ID)`
+
+Subtract 1000 modifications  = `r length(mod_min1000$ind_ID)`
+
+Multiply by 10 modifications = `r length(mod_mul10$ind_ID)`
+
+Multiply by 100 modifications = `r length(mod_mul100$ind_ID)`
+
+Multiply by 1000 modifications = `r length(mod_mul1000$ind_ID)`
+
+Divide by 10 modifications = `r length(mod_div10$ind_ID)`
+
+Divide by 100 modifications = `r length(mod_div100$ind_ID)`
+
+Divide by 1000 modifications = `r length(mod_div1000$ind_ID)`
+
+Convert to kg modifications = `r length(mod_kgs$ind_ID)`
+
+Convert to lbs modifications = `r length(mod_lbs$ind_ID)`
+
+Transpose modifications = `r length(mod_rev$ind_ID)`
+
+Jumping measurements deletions (or step 4 of algorithm) = `r length(deletions_4$ind_ID)`
+
+Implausible measurements deletions (or step 5 of algorithm) = `r length(deletions_5$ind_ID)`
+
+
+*Graph of data after DNC method*
+
+```{r}
+ggplot(master_DNC, aes(x = age/365, y = new_weight, group = ind_ID, colour = sex, fill= sex)) +
+                geom_line(alpha = 0.4, lwd = 0.2) +
+                geom_point(alpha = 0.4) +
+                labs(title = "Cleaned weight data", 
+                     x = "Age (years)", 
+                     y = "Weight (kg)") +
+             scale_x_continuous(breaks = c(0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100)) +
+                scale_y_continuous() +
+                theme_bw() +
+               theme(axis.title.y = element_text(face="bold", size=12), 
+                      axis.text.y  = element_text(size=12),
+                      axis.title.x = element_text(face="bold", size=12),
+                      axis.text.x  = element_text(size=12),
+                      plot.title = element_text(face="bold", size=12, hjust = 0.5),
+                      legend.title = element_blank(), 
+                      legend.text = element_text(face="bold", size=12),
+                      legend.position = c(0.85, 0.1))
+```
+
+
+
+
+

@@ -9,15 +9,18 @@
 library(evaluate)
 
 #Run the RD method on the data first
-replay(evaluate(file('data_cleaning_methods/RD.r')))
-dat <- master_RD
+if(exists('master_RD') == FALSE) {
+replay(evaluate(file('/Users/s1576473/dev/growth_cleanR/data_cleaning_methods/RD.R')))
+}
+
+master_GCO <- master_RD
 
 #define the externally defined cut-offs for weight that are used to identify outliers
-  dat$cut_outlier <- (dat$new_weight < 0.5) | 
-    ((dat$new_weight < 10) & (dat$age >= 1825)) | 
-    (dat$new_weight > 250)
+  master_GCO$cut_outlier <- (master_GCO$new_weight < 0.5) | 
+    ((master_GCO$new_weight < 10) & (master_GCO$age >= 1825)) | 
+    (master_GCO$new_weight > 250)
 
 #remove values defined as outliers  
-  master_GCO <- dat %>%
+  master_GCO <- master_GCO %>%
     filter(cut_outlier == FALSE)
 

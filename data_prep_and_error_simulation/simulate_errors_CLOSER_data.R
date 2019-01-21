@@ -61,13 +61,16 @@
   dat$row_ID <- 1:length(dat$ind_ID)
   
 #ADD ERRORS TO DATA
-  
+   
+  if(exists(c('e', 'r')) == FALSE) {
 #get e - the overall error rate
   e <- 0.01
 #get r - the percentage of errors that IS a random error
   r <- 0.5
-#get p - the percentage of errors that is NOT a random error (these are the fixed errors)
-  p <- 0.5
+  }
+  
+  #get p - the percentage of errors that is NOT a random error (these are the fixed errors)
+  p <- 1-r
   
 #randomly select data that errors will be added to
   set.seed(1000)
@@ -86,10 +89,25 @@
           split(dat, which.group)
   }
 
+  
+  if(e == 0) {
+    dat <- full_join(not_error_data,error_data) %>%
+      mutate(weight = new_weight,
+             induced_error = original_weight != weight)
+    }
+  
+  if(e > 0) {
+  
 #Randomly split error data into 12 dataframes based on the proportions of random vs
 #non-random errors given by 'r' and 'p' respectively
   set.seed(1001)
   split_error_data <- split_data(error_data)
+  
+  if(r == 0) {   
+    make_random_errors <- error_data[FALSE,]
+    }
+  
+  if(r > 0) {     
         
 #Induce random errors
   make_random_errors <- split_error_data$`12`
@@ -97,6 +115,13 @@
   make_random_errors$weight <- sample(seq(0.0001, 500, by=0.0001), length(make_random_errors$ind_ID))
   make_random_errors$induced_random_errors <- TRUE
   error_data <- make_random_errors
+  }
+  
+  if(p == 0) {
+    error_data <- make_random_errors
+  }
+  
+  if(p > 0) {  
 
 #Induce multiplication errors (x10, x100 and x1000)
   multiply_10 <- split_error_data$`1`
@@ -178,20 +203,17 @@
   convert_to_tf$weight <- Reverse_CPP2(convert_to_tf$original_weight) + (convert_to_tf$original_weight %% 1)
   convert_to_tf$induced_reversed_errors <- convert_to_tf$original_weight != convert_to_tf$weight
   error_data <- full_join(error_data,convert_to_tf) 
+  }
   
 #join the error data back to the non-error data to form the full dataset and reformat
-  dat2 <- full_join(not_error_data,error_data) %>%
+  dat <- full_join(not_error_data,error_data) %>%
           #get rid of NAS in weight variable by filling with original weight, then copy variable
           mutate(new_weight = case_when(is.na(weight) ~ original_weight,
                                     !is.na(weight) ~ weight),
                  weight = new_weight,
           #create variable that identifies induced errors
                  induced_error = original_weight != weight)
+  }
   
 #check that no further duplications have been added  
-  dat2 <- get_duplications(dat2) 
-  
-#Save the data in csv format
-  write_csv(dat2, 'data/error_simulated_CLOSER_data.csv')  
-        
-                
+  dat <- get_duplications(dat)
