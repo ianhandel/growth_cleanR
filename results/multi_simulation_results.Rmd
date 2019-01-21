@@ -1,0 +1,266 @@
+---
+title: "Multi simulation results output"
+author: "Charlotte Woolley"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning=FALSE)
+knitr::opts_chunk$set(message=FALSE)
+knitr::opts_chunk$set(fig.align='center')
+knitr::opts_chunk$set(fig.height = 16, fig.width = 16)
+
+options(scipen=999)
+
+```
+
+
+```{r}
+
+#LIBRARIES:
+  library(tidyverse)
+  library(gridExtra)
+  library(reshape2)
+  library(grid)
+  library(kableExtra)
+
+#Read in data
+  methods_results <- read_csv("/Users/s1576473/dev/growth_cleanR/data/multi_simulation_results.csv")
+  
+ sens_data <- methods_results %>%
+        filter(e > 0) %>%
+        summarise(DNC = mean(se_DNC, na.rm = TRUE),
+                  RD = mean(se_RD, na.rm = TRUE),
+                  GCO = mean(se_GCO, na.rm = TRUE),
+                  SZCO = mean(se_SZCO, na.rm = TRUE),
+                  LZCO = mean(se_LZCO, na.rm = TRUE),
+                  NLR = mean(se_NLR, na.rm = TRUE),
+                  NLR_A = mean(se_NLR_A, na.rm = TRUE),
+                  NLME = mean(se_NLME, na.rm = TRUE),
+                  NLME_A = mean(se_NLME_A, na.rm = TRUE))
+        
+
+ spec_data <- methods_results %>%
+        filter(e > 0) %>%
+        summarise(DNC = mean(sp_DNC, na.rm = TRUE),
+                  RD = mean(sp_RD, na.rm = TRUE),
+                  GCO = mean(sp_GCO, na.rm = TRUE),
+                  SZCO = mean(sp_SZCO, na.rm = TRUE),
+                  LZCO = mean(sp_LZCO, na.rm = TRUE),
+                  NLR = mean(sp_NLR, na.rm = TRUE),
+                  NLR_A = mean(sp_NLR_A, na.rm = TRUE),
+                  NLME = mean(sp_NLME, na.rm = TRUE),
+                  NLME_A = mean(sp_NLME_A, na.rm = TRUE))
+
+ pres_data <- methods_results %>%
+        filter(e > 0) %>%
+        summarise(DNC = mean(pres_DNC, na.rm = TRUE),
+                  RD = mean(pres_RD, na.rm = TRUE),
+                  GCO = mean(pres_GCO, na.rm = TRUE),
+                  SZCO = mean(pres_SZCO, na.rm = TRUE),
+                  LZCO = mean(pres_LZCO, na.rm = TRUE),
+                  NLR = mean(pres_NLR, na.rm = TRUE),
+                  NLR_A = mean(pres_NLR_A, na.rm = TRUE),
+                  NLME = mean(pres_NLME, na.rm = TRUE),
+                  NLME_A = mean(pres_NLME_A, na.rm = TRUE))
+        
+  convergence_data <- methods_results %>%
+          summarise(DNC = (sum(!is.na(pres_DNC))/length(e))*100,
+                    RD = (sum(!is.na(pres_RD))/length(e))*100,
+                    GCO = (sum(!is.na(pres_GCO))/length(e))*100,
+                    SZCO = (sum(!is.na(pres_SZCO))/length(e))*100,
+                    LZCO = (sum(!is.na(pres_LZCO))/length(e))*100,
+                    NLR = (sum(!is.na(pres_NLR))/length(e))*100,
+                    NLR_A = (sum(!is.na(pres_NLR_A))/length(e))*100,
+                    NLME = (sum(!is.na(pres_NLME))/length(e))*100,
+                    NLME_A = (sum(!is.na(pres_NLME_A))/length(e))*100)
+  
+  summary_results <- rbind(sens_data,spec_data,pres_data,convergence_data) %>%
+    mutate(Result = c('Sensitivity','Specificity','Preservation','Convergence')) %>%
+    select(Result, everything())
+
+```
+
+##*Table of mean results across all simulations for all data cleaning methods*
+&nbsp;
+&nbsp;
+
+```{r}
+  kable(summary_results, "html") %>%
+        kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+
+
+##*Graphical representation of results*
+&nbsp;
+&nbsp;
+
+
+```{r}
+#Plot sensitivity results    
+  long_sens <- methods_results %>%
+        select(e, r, se_DNC, se_RD, se_GCO, se_SZCO, se_LZCO, 
+               se_NLR, se_NLR_A, se_NLME, se_NLME_A) %>%
+        melt(., id.vars = c('e', 'r')) %>%
+  mutate(e_perc = e*100,
+         r_perc = r*100)
+
+  labels <- c(se_DNC = 'DNC', se_RD =  'RD', se_GCO = 'GCO', se_SZCO = 'SZCO',
+            se_LZCO = 'LZCO', se_NLR = 'NLR', se_NLR_A = 'NLR-A', 
+            se_NLME = 'NLME', se_NLME_A = 'NLME-A')
+  long_sens$r_perc <- factor(long_sens$r_perc,levels = c(seq(0, 100, 10)))
+  long_sens$e_perc <- factor(long_sens$e_perc,levels = c(0,0.1,0.2,0.5,1,2,5,10,20,50))
+  
+  pal1 <- c('#67001f', '#b2182b','#d6604d','#f4a582','#fddbc7','#f7f7f7','#92c5de','#4393c3','#2166ac', '#053061')
+  col <- c("purple3","olivedrab3","chartreuse4","goldenrod1","darkorange2", "mediumpurple1", "grey70", "grey50", "khaki1")
+    
+  s1 <- ggplot() +
+    geom_tile(data=long_sens, aes(x = e_perc, y = r_perc, z = value, fill=value, colour="")) +
+    scale_fill_gradientn(colours = pal1, limits = c(0, 100), na.value="black") +
+    scale_colour_manual(values=NA) +              
+    guides(colour=guide_legend("No Convergence", override.aes=list(colour="black"))) +
+    facet_wrap(~ variable, ncol = 3, labeller=labeller(variable = labels)) +
+    labs(title = "Sensitivity of methods",
+             x = "Percentage of induced errors", 
+             y = "Percentage of randomness in induced errors",
+         fill = "Sensitivity") +
+    theme_bw() +
+    theme(axis.title.y = element_text(face="bold", size=20, margin=margin(0,15,0,0)), 
+          axis.text.y  = element_text(size=16),
+          axis.title.x = element_text(face="bold", size=20, margin=margin(15,0,0,0)),
+          axis.text.x  = element_text(size=16),
+          plot.title = element_text(face="bold", size=20, hjust = 0.5),
+          legend.title = element_text(face="bold", size=20),
+          legend.text = element_text(size=18),
+          strip.text.x = element_text(size = 18))  +
+    guides(fill=guide_legend(keywidth=0.3,
+                             keyheight=0.3,
+                             default.unit="inch"))
+
+  s2 <- ggplot_gtable(ggplot_build(s1))
+  strip <- which(grepl('strip', s2$layout$name))
+  k <- 1
+  for (i in strip) {
+    j <- which(grepl('rect', s2$grobs[[i]]$grobs[[1]]$childrenOrder))
+    s2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- col[k]
+    k <- k+1
+  }
+  grid.draw(s2)
+```
+
+&nbsp;
+&nbsp;
+
+
+```{r}
+#Plot specificity results    
+  long_spec <- methods_results %>%
+        select(e, r, sp_DNC, sp_RD, sp_GCO, sp_SZCO, sp_LZCO, 
+               sp_NLR, sp_NLR_A, sp_NLME, sp_NLME_A) %>%
+        melt(., id.vars = c('e', 'r')) %>%
+  mutate(e_perc = e*100,
+         r_perc = r*100)
+
+  labels <- c(sp_DNC = 'DNC', sp_RD =  'RD', sp_GCO = 'GCO', sp_SZCO = 'SZCO',
+            sp_LZCO = 'LZCO', sp_NLR = 'NLR', sp_NLR_A = 'NLR-A', 
+            sp_NLME = 'NLME', sp_NLME_A = 'NLME-A')
+  long_spec$r_perc <- factor(long_spec$r_perc,levels = c(seq(0, 100, 10)))
+  long_spec$e_perc <- factor(long_spec$e_perc,levels = c(0,0.1,0.2,0.5,1,2,5,10,20,50))
+  
+  pal1 <- c('#67001f', '#b2182b','#d6604d','#f4a582','#fddbc7','#f7f7f7','#92c5de','#4393c3','#2166ac', '#053061')
+  col <- c("purple3","olivedrab3","chartreuse4","goldenrod1","darkorange2", "mediumpurple1", "grey70", "grey50", "khaki1")
+    
+  s1 <- ggplot() +
+    geom_tile(data=long_spec, aes(x = e_perc, y = r_perc, z = value, fill=value, colour="")) +
+    scale_fill_gradientn(colours = pal1, limits = c(0, 100), na.value="black") +
+    scale_colour_manual(values=NA) +              
+    guides(colour=guide_legend("No Convergence", override.aes=list(colour="black"))) +
+    facet_wrap(~ variable, ncol = 3, labeller=labeller(variable = labels)) +
+    labs(title = "Specificity of methods",
+             x = "Percentage of induced errors", 
+             y = "Percentage of randomness in induced errors",
+         fill = "Specificity") +
+    theme_bw() +
+    theme(axis.title.y = element_text(face="bold", size=20, margin=margin(0,15,0,0)), 
+          axis.text.y  = element_text(size=16),
+          axis.title.x = element_text(face="bold", size=20, margin=margin(15,0,0,0)),
+          axis.text.x  = element_text(size=16),
+          plot.title = element_text(face="bold", size=20, hjust = 0.5),
+          legend.title = element_text(face="bold", size=20),
+          legend.text = element_text(size=18),
+          strip.text.x = element_text(size = 18))  +
+    guides(fill=guide_legend(keywidth=0.3,
+                             keyheight=0.3,
+                             default.unit="inch"))
+
+  s2 <- ggplot_gtable(ggplot_build(s1))
+  strip <- which(grepl('strip', s2$layout$name))
+  k <- 1
+  for (i in strip) {
+    j <- which(grepl('rect', s2$grobs[[i]]$grobs[[1]]$childrenOrder))
+    s2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- col[k]
+    k <- k+1
+  }
+  grid.draw(s2)
+```
+
+&nbsp;
+&nbsp;
+
+
+```{r}
+#Plot preservation results    
+  long_pres <- methods_results %>%
+        select(e, r, pres_DNC, pres_RD, pres_GCO, pres_SZCO, pres_LZCO, 
+               pres_NLR, pres_NLR_A, pres_NLME, pres_NLME_A) %>%
+        melt(., id.vars = c('e', 'r')) %>%
+  mutate(e_perc = e*100,
+         r_perc = r*100)
+
+  labels <- c(pres_DNC = 'DNC', pres_RD =  'RD', pres_GCO = 'GCO', pres_SZCO = 'SZCO',
+            pres_LZCO = 'LZCO', pres_NLR = 'NLR', pres_NLR_A = 'NLR-A', 
+            pres_NLME = 'NLME', pres_NLME_A = 'NLME-A')
+  long_pres$r_perc <- factor(long_pres$r_perc,levels = c(seq(0, 100, 10)))
+  long_pres$e_perc <- factor(long_pres$e_perc,levels = c(0,0.1,0.2,0.5,1,2,5,10,20,50))
+  
+  pal1 <- c('#67001f', '#b2182b','#d6604d','#f4a582','#fddbc7','#f7f7f7','#92c5de','#4393c3','#2166ac', '#053061')
+  col <- c("purple3","olivedrab3","chartreuse4","goldenrod1","darkorange2", "mediumpurple1", "grey70", "grey50", "khaki1")
+    
+  s1 <- ggplot() +
+    geom_tile(data=long_pres, aes(x = e_perc, y = r_perc, z = value, fill=value, colour="")) +
+    scale_fill_gradientn(colours = pal1, limits = c(0, 100), na.value="black") +
+    scale_colour_manual(values=NA) +              
+    guides(colour=guide_legend("No Convergence", override.aes=list(colour="black"))) +
+    facet_wrap(~ variable, ncol = 3, labeller=labeller(variable = labels)) +
+    labs(title = "Preservation of methods",
+             x = "Percentage of induced errors", 
+             y = "Percentage of randomness in induced errors",
+         fill = "Preservation") +
+    theme_bw() +
+    theme(axis.title.y = element_text(face="bold", size=20, margin=margin(0,15,0,0)), 
+          axis.text.y  = element_text(size=16),
+          axis.title.x = element_text(face="bold", size=20, margin=margin(15,0,0,0)),
+          axis.text.x  = element_text(size=16),
+          plot.title = element_text(face="bold", size=20, hjust = 0.5),
+          legend.title = element_text(face="bold", size=20),
+          legend.text = element_text(size=18),
+          strip.text.x = element_text(size = 18))  +
+    guides(fill=guide_legend(keywidth=0.3,
+                             keyheight=0.3,
+                             default.unit="inch"))
+
+  s2 <- ggplot_gtable(ggplot_build(s1))
+  strip <- which(grepl('strip', s2$layout$name))
+  k <- 1
+  for (i in strip) {
+    j <- which(grepl('rect', s2$grobs[[i]]$grobs[[1]]$childrenOrder))
+    s2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- col[k]
+    k <- k+1
+  }
+  grid.draw(s2)
+```
+
+
