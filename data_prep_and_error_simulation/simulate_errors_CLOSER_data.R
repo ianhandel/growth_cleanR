@@ -28,7 +28,7 @@
                                                  duplicated(dups_ID, fromLast = TRUE)),
                          complete_duplications = (duplicated(complete_dups_ID) |
                                                           duplicated(complete_dups_ID, fromLast = TRUE)))
-          if(print_results == TRUE) {
+          if(print_results) {
                   print(c("Duplications", sum(X$duplications)))
                   print(c("Complete Duplications", sum(X$complete_duplications)))
           }
@@ -41,7 +41,7 @@
 #randomly add duplications (of 2) to 2.5% of data
   d <- 0.025 #percentage of rows to duplicate (2.5%)
   set.seed(782)
-  dups1 <- dat[sample(nrow(dat), (length(dat$ind_ID)*d)), ]
+  dups1 <- dat[sample(nrow(dat), (nrow(dat)*d)), ]
   dups1_expand <- dups1[rep(1:nrow(dups1),each=2),] 
   dat <- full_join(dat,dups1_expand)
 
@@ -50,7 +50,7 @@
 
 #Add further duplications (of 3) to 2.5% of this data
   set.seed(783)
-  dups2 <- dat[sample(nrow(dat), (length(dat$ind_ID)*d)), ]
+  dups2 <- dat[sample(nrow(dat), (nrow(dat)*d)), ]
   dups2_expand <- dups2[rep(1:nrow(dups2),each=3),] 
   dat <- full_join(dat,dups2_expand)
 
@@ -58,11 +58,11 @@
   dat <- get_duplications(dat) 
 
 #create ID for each row in data
-  dat$row_ID <- 1:length(dat$ind_ID)
+  dat$row_ID <- seq_len(nrow(dat))
   
 #ADD ERRORS TO DATA
    
-  if(exists(c('e', 'r')) == FALSE) {
+  if(!exists(c('e', 'r'))) {
 #get e - the overall error rate
   e <- 0.01
 #get r - the percentage of errors that IS a random error
@@ -74,7 +74,7 @@
   
 #randomly select data that errors will be added to
   set.seed(1000)
-  error_data <- dat[sample(nrow(dat), (length(dat$ind_ID)*e)), ]
+  error_data <- dat[sample(nrow(dat), (nrow(dat)*e)), ]
   not_error_data <- subset(dat, !(dat$row_ID %in% error_data$row_ID))
 
 #function that splits the error data into several smaller dataframes
